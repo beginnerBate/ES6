@@ -1,0 +1,49 @@
+# 迭代器与控制流程(中)  ---- 迭代器协议和可迭代协议
+
+## 1. 迭代器协议和可迭代协议的概念和关系
+ - 都是ES6中引入的两个新的协议: 迭代器 和 可迭代对象。
+ - 这两个协议可以为任何对象定义迭代行为
+ 
+
+ ## 2. 普通对象---变成可迭代的对象
+String, Array, TypedArray, Map and Set 是所有内置可迭代对象， 因为它们的原型对象都有一个 @@iterator 方法.
+
+ ```js
+   var testObj = {
+       a:"7788",
+       b:"9900"
+   }
+   //  迭代testObj的方法 
+   for (var key in testObj){
+       console.log(key+":"+testObj[key])
+   }
+
+   for(var value of testObj){
+        console.log(value)
+   }
+   //    testObj is not iterable 会报错
+
+  //  利用迭代器把testObj变成可遍历其值得对象   
+  testObj[Symbol.iterator] = function(){
+      var keys = Object.getOwnPropertyNames(testObj)
+      let i = 0;
+      return {
+          next(){
+              const value = testObj[keys[i]];
+              i++
+              const done = i>keys.length
+              return {
+                  value, done
+              }
+          }
+      }
+  }
+
+    for(var value of testObj){
+        console.log(value)  // ok
+   }
+    [...testObj] // ["7788", "9900"]
+ ```
+    把 testObj 没有转换成 可迭代的对象之前, 不能被 for of 迭代， ...testObj 也会报错
+ ---
+

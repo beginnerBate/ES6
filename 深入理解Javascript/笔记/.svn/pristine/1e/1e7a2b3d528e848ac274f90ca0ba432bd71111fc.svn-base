@@ -1,0 +1,135 @@
+# 迭代器与控制流程(中)  ---- 迭代器协议和可迭代协议
+
+## 1. 迭代器协议和可迭代协议的概念和关系
+ - 都是ES6中引入的两个新的协议: 迭代器 和 可迭代对象。
+ - 这两个协议可以为任何对象定义迭代行为
+ 
+
+ ## 2. 普通对象---变成可迭代的对象
+String, Array, TypedArray, Map and Set 是所有内置可迭代对象， 因为它们的原型对象都有一个 @@iterator 方法.
+
+ ```js
+   var testObj = {
+       a:"7788",
+       b:"9900"
+   }
+   //  迭代testObj的方法 
+   for (var key in testObj){
+       console.log(key+":"+testObj[key])
+   }
+
+   for(var value of testObj){
+        console.log(value)
+   }
+   //    testObj is not iterable 会报错
+
+  //  利用迭代器把testObj变成可遍历其值得对象   
+  testObj[Symbol.iterator] = function(){
+      var keys = Object.getOwnPropertyNames(testObj)
+      let i = 0;
+      return {
+          next(){
+              const value = testObj[keys[i]];
+              i++
+              const done = i>keys.length
+              return {
+                  value, done
+              }
+          }
+      }
+  }
+
+    for(var value of testObj){
+        console.log(value)  // ok
+   }
+    [...testObj] // ["7788", "9900"]
+ ```
+    把 testObj 没有转换成 可迭代的对象之前, 不能被 for of 迭代， ...testObj 也会报错
+ ---
+ ## 3. 无穷序列
+> 迭代器本质上是懒惰的。迭代器序列中元素每次只能取出一个，即使序列是有限的。
+```js
+const random = {
+    [Symbol.iterator]: ()=> ({
+        next:() => ({value: Math.random()})
+    })
+}
+```
+    使用Array.from(random) 或[...random] 将可迭代对象random 转换为数组均会导致程序崩
+    溃，因为这个序列没有尽头。无穷序列很容易将浏览器、Node.js 服务器进程搞崩溃，因此
+    要小心使用。
+---
+安全的使用无穷序列
+```js
+    //  1. 使用解构取出序列中特定位置的值
+    const [one, another]  = random;
+    //   2.for..of 配合break 达到目地;
+    for (const value of random) {
+        if (value > 0.8) {
+            break
+        }
+        console.log(value)
+    }
+    //   把取值抽象成一个take 方法
+    function take(sequence, amount){
+        return {
+            [Symbol.iterator](){
+                const iterator = sequence[Symbol.iterator]()
+                return {
+                    next(){
+                        if(amount-- < 1 ){
+                            return {done:true}
+                        }
+                        return iterator.next()
+                    }
+                }
+            }
+        }
+    }
+    [...take(random,2)] //
+
+    // 3. 第一个大于0.8 的数值之前的所有随机数
+    function range(sequence, low=0, hight=1){
+        return {
+            [Symbol.iterator](){
+                const iterator = sequence[Symbol.iterator]();
+                return {
+                    next(){
+                        const item = iterator.next();
+                        if(item.value < low || item.value > high) {
+                            return {done: true}
+                        }
+                        return item
+                    }
+                }
+            }
+        }
+    }
+
+    const low = [...range(random,0 ,0.8)]
+```
+### 4. 迭代对象以生成键/值对
+    把普通对象转换为可迭代对象有很多的实用场景。
+
+1.对象键值对的遍历
+
+```js
+function keyValueIterable(target) {
+    target[Symbol.iterator] = function () {
+        const keys = Object.keys(target);
+        return {
+            next(){
+                const done = keys.length === 0
+                const key = keys.shift()
+                return {
+                    done,
+                    value:[key, target[key]]
+                }
+            }
+        }
+    }
+    return target;
+}
+``` 
+
+

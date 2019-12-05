@@ -1,0 +1,440 @@
+# ES6基础
+1. 对象字面量
+2. 箭头函数
+3. 解构
+4. 剩余参数和扩展运算符
+5. 模板字面量
+6. let和const声明
+
+## 1. 对象字面量
+对象字面量是指使用 {} 简写语法进行的对象声明，语法格式:
+```javascript
+  var book = {
+      title:'Modular ES6',
+      author:'Nicolas',
+      publisher:'o`Reily'
+  }
+```
+es6 对 对象字面量语法进行了一些小的改进: 属性值简写，可计算属性名和 方法定义。
+  - 属性值简写
+    > 对象的属性名和所引用的变量名相同的时候,可以简写
+    ```js
+      var apple="苹果";
+      var furit = {apple}; // {apple: "苹果"}
+    ```
+  - 可计算属性名
+  > 有的时候我们要声明一个属性名依赖变量或者表达式的对象。
+  ```js
+    var apple = "苹果";
+    var furit = {
+        name:"苹果"
+    }
+    furit[apple] = ["大苹果","小苹果","红苹果"]  // {name: "苹果", 苹果: Array(3)}
+    
+  ```
+  - 方法定义
+  > es6开始 可以在对象字面量中使用新的方法定义语法进行方法声明, 省略冒号和function 关键字
+  ```js
+    var emitter = {
+      events:{},
+      on(type, fn)(){
+        if(this.events[type] === undefined){
+          this.events[type] = []
+        }
+        this.events[type].push(fn);
+      },
+      emit(type,event){
+        if(this.events[type] === undefined){
+          return;
+        }
+        this.events[type].forEach(function(fn){
+          fn(event)
+        })
+      }
+    }
+  ```
+!!! 属性值简写和可计算属性名不可以同时使用，会报语法错误
+## 2. 箭头函数
+> ES6开始 , 可以将箭头函数作为声明匿名函数的另一种方式。
+```js
+   var example = (parameters) => {
+      //   函数体
+   }
+```
+箭头函数和常规函数的本质区别:
+1. 箭头函数不能显示地命名  (尽管浏览器会将箭头函数所赋予的变量名作为函数名)。
+2. 箭头函数不能用作构造函数，也没有prototype属性，这意味着不能对它们使用new 关键字；
+3. 箭头函数会绑定到所在词法作用域，所有箭头函数不会改变this指向。
+
+### 2.1词法作用域:
+由于箭头函数不会创建新的作用域,在箭头函数的函数体内,this、arguments以及super均属于所在的父级作用域。
+```js
+     // 1. 避免为保持上下文引用而额外增加复杂性
+      var timer = {
+      seconds: 0,
+      start() {
+      setInterval(() => {
+      this.seconds++
+      }, 1000)
+      }
+      }
+      timer.start()
+      setTimeout(function () {
+      console.log(timer.seconds)
+      }, 3500)
+      //  3
+
+      // 2. ES箭头函数作用域绑定也意味着 .call .apply .bind 等方法调用函数是也无法改变this的指向。
+      function puzzle(){
+        return function(){
+          console.log(arguments)
+        }
+      }
+
+      puzzle('a','b,','c')(1,2,3) // 1 2 3 
+
+      function puzzle() {
+        return () => console.log(arguments)
+        }
+        puzzle('a', 'b', 'c')(1, 2, 3)  // a b c
+```
+### 2.2箭头函数的写法:
+1. 一个参数的时候
+```js
+     var double = value => {
+        return value * 2 
+     }
+```
+2.声明简单函数时 隐藏return 
+```js
+    var double = value => value *2;
+```
+3. 隐式返回对象字面量 需要用圆括号将对象字面量包裹起来
+```js
+    [1,2,3].map(value=>({number:value}))
+```
+### 2.3 箭头函数的优点和用例:
+- 合适简短实列
+- 在任何情况下词法作用域都不改变的匿名函数 --- 箭头函数
+
+## 3. 解构
+>  解构是ES6中最灵活且最有表现力的特性之一。 解构可以用于对象，数组，已经函数参数列表。
+1. 对象解构
+```js
+var character = {
+        name: 'Bruce',
+        pseudonym: 'Batman',
+        metadata: {
+        age: 34,
+        gender: 'male'
+        },
+        batarang: ['gas pellet', 'bat-mobile control', 'bat-cuffs']
+}
+
+//  1. 基本解构
+var {pseudonym} = character;  // "Batman"
+
+// <!-- 2. 多个变量 -->
+var {pseudonym, name} = character;
+
+// <!-- 3. 别名 -->
+var { pseudonym: alias } = character ; //alias  "Batman"
+
+// <!-- 4. 深度解构 -->
+var { metadata: { gender } } = character;  // gender -- male
+
+// <!-- 5. 深层解构+别名 -->
+var { metadata: { gender: characterGender } } = character; // characterGender -- male
+
+// <!-- 6. 解构不存在属性 得到的是undefined -->
+var {boots} = character;  // boots:undefined
+
+// <!-- 7. 别名+默认值结合的解构 -->
+var { boots: footwear = { size: 10 } } = character 
+```
+2. 数组的解构
+```js
+    //  1. 基本数组解构
+    var coordinates = [12, -7];
+    var [x, y] = coordinates;  //  x:12, y :-7
+
+    //  2. 跳过不敢兴趣或不需要引用的值
+    var names = ["James", "L.", "Howlett"];
+    var [firstName, , lastName] =names;
+
+    // 3.默认值解构
+    var names = ['James','L.'];
+    var [firstName = 'John', , lastName='Doe']
+
+    //  两个变量交换的时候
+    var left = 5;
+    var right = 7;
+    [left, right] = [right, left];
+```
+3. 函数参数的默认值
+```js
+//  <!-- 1. 普通函数参数的默认值 -->
+function powerOf(base, exponent = 2) {
+  return Math.pow(base, exponent)
+}
+
+// <!-- 2. 箭头函数的参数默认值 -->
+var double = (input = 0) => input *2;
+
+// <!-- 3. 可以为任何参数设置默认值 -->
+function sumOf(a = 1, b = 2, c = 3){
+  return a + b + c
+}
+
+// <!-- 4.  当函数包含多个属性的options 对象参数的时候 -->
+// <!-- 1. 函数参数的解构----默认值 -->
+  function carFactory({
+    brand = "Volkswagen",
+    make = 1999
+  } = {} ){
+    console.log(brand)
+    console.log(make)
+  };
+  carFactory();  // Volkswagen 1999
+
+// <!-- 2. 函数参数的解构----对象描述 -->
+var car = {
+    owner: {
+      id: 'e2c3503a4181968c',
+      name: 'Donald Draper'
+    },
+    brand: 'Peugeot',
+    make: 2015,
+    model: '208',
+    preferences: {
+      airbags: true,
+      airconditioning: false,
+      color: 'red'
+    }
+} 
+var test = ({brand, make, model }) => ({
+  sku: brand + ":" + make +":"+ model,
+  brand,
+  make,
+  model
+})
+```
+4. 解构的其他用法
+```js
+// <!-- 1. 当函数返回一个对象或数组时, 使用解构处理返回值 -->
+function getCoordinates(){
+  return {x:10,y:22,z:-1,type:"3d"}
+}
+var {x, y} = getCoordinates();  // x:10 y: 22
+
+// <!-- 2.避免重复 -->
+function random({min=1, max=10} = {}){
+  return Math.floor(Math.random() * (max - min)) + min
+}
+random()
+
+// <!-- 3. 正则表达式 -->
+function splitDate(date){
+  var rdate = /(\d+).(\d+).(\d+)/;
+  return rdate.exec(date)
+}
+var [ , year, month, day] = splitDate('2015-11-06');
+
+```
+## 4. 剩余参数和扩展运算符
+### 1.剩余参数
+> 在函数的最后一个参数前添加 ... 可以将该参数转变为一个特殊的 "剩余参数"。
+```js
+    function join(...list){
+      return list.join(',')
+    }
+    join('first', 'second', 'third')
+
+    //  剩余参数前面的参数不会包含在list里面
+    function test(separator, ...list) {
+      return list.join(separator);
+    }
+    join('; ', 'first', 'second', 'third')  // 'first; second; third'
+
+    //  箭头函数使用剩余参数 需要用圆括号 括起来。
+    var sumAll = (...numbers) => numbers.reduce(
+      (total, next) => total + next
+    );
+    sumAll(1, 2, 5)
+```
+### 2. 扩展运算符
+> 扩展运算符可以将可遍历对象转换为数组
+```js
+  function cast (){
+    console.log(arguments)
+    return [...arguments]
+  }
+  cast("a","b","d");
+
+  //  1. 分割一个字符串成数组
+  [...'show me']  // (7) ["s", "h", "o", "w", " ", "m", "e"]
+
+  //  2. 拼接多个数组
+  var all = [1, ...[2,4],66,...[0,99,89]]
+
+  //  数组的解构和扩展运算符 结合
+  var [first, second, ...other] = ['a', 'b', 'c', 'd', 'e']
+  
+  //  扩展运算符还可以在函数调用中使用
+  function multiply(left, right) {
+    return left * right
+  }
+  var result = multiply(...[2,3])
+
+  // 使用剩余参数传参
+  function print(...list) {
+    console.log(list)
+  }
+  print(1, ...[2, 3], 4, ...[5]);
+
+  //  不是很懂。
+  // new 关键字和apply 方法new (Date.bind.apply(Date,[null,2015,31,8])) new Date(...[2015,31,8])
+```
+## 5. 模板字面量
+### 1.字符串插值
+```js
+    //  `` 里面是字符串 ${} 里面可以放js变量 表达式
+    var name = "ime";
+    var text = `Hello, ${name}!`;
+    `The time and date is ${ new Date().toLocaleString() }.`
+    `The result of 2+3 equals ${ 2 + 3 }`
+    `This template literal ${ `is ${ 'nested' }` }!`
+
+    //  多行模板字面量
+    var test = `ddd
+    dddd
+    ddd`
+
+    var book = {
+    title: 'Modular ES6',
+    excerpt: 'Here goes some properly sanitized HTML',
+    tags: ['es6', 'template-literals', 'es6-in-depth']
+    }
+var html = `<article>
+      <header>
+      <h1>${ book.title }</h1>
+      </header>
+      <section>${ book.excerpt }</section>
+      <footer>
+      <ul>
+      ${
+      book.tags
+      .map(tag => `<li>${ tag }</li>`)
+      .join('\n    ')
+      }
+      </ul>
+      </footer>
+      </article>`
+```
+### 2. 标签模板 ???? 要回去补一下 数组的 reduce 基础
+> 语法: String.raw : 可以使得转义字符串不进行转义
+```js
+var  text = String.raw`"\n" 是字面意思.
+iIt'll be escaped instead of interpreted`;
+```
+
+## 6. let 和 const 声明
+### 1. let声明和块级作用域
+> 块级作用域允许我们在现有的分支代码语句(if, for, while) 的基础上嵌套任意新的{}块，以创建更深的作用域，而不需要声明新的函数。
+```js
+    {{{{ var deep = "这可以从外部范围获得." }}}}
+    console.log(deep);
+```
+使用 var 声明的变量是基于词法作用域的。仍然可以在deep变量声明所在块的外部访问到该变量，并且不会报错。
+
+let 声明是 var 声明的一个替代方案。它遵循块级作用域规则，而不是默认的词法作用域规则。var 声明需要函数来创建更深的作用域。
+let声明只需要添加一对花括号就可以创建更深的作用域。
+```js
+    let topmost = {};
+    {
+      let inner = {};
+      {
+        let innermost = {}
+      }
+      innermost
+      // innermost 会抛出异常 Uncaught ReferenceError: innermost is not defined
+    } 
+```
+let 和for 循环
+```js
+  //   在for循环里面使用let 那么变量的作用域会封闭在循环体内。
+  for(let i = 0; i<2; i++) {
+    console.log(i);
+  }
+  
+  console.log(i)  // i is not defined
+
+  //  每次循环都会创建一个新的绑定
+  function printNumbers() {
+    for (let i = 0; i < 10; i++) {
+        setTimeout(function () {
+            console.log(i)
+        }, i * 100)
+    }
+}
+printNumbers()
+// <!--  回调函数会持有一个保存当前变量i的绑定的引用 ，当然这还涉及到"暂时性死区" 这一概念 -->
+```
+### 2. 暂时性死区
+> 从作用域开始到let声明的执行前，访问let声明的变量都会报错。 这就是所谓的暂时性死区
+```js
+    {
+      console.log(name);
+      //  ........
+      let name = 'Stephen Hawking';
+    }
+```
+作用: 更轻松地捕获错误，防止在用户代码声明变量前就访问变量,从而避免一些不可预期的行为。
+
+!!! 记住，提升仍然适用于let，即变量在作用域的开始就会创建，但会产生暂时性死区，这些变量在声明语句没有执行前无法访问，离开暂时性死区之后才能够访问。
+### 3. const声明
+1. const 声明也遵循块级作用域，并存在暂时性死区。
+2. const 声明的变量必须在声明的时候就进行初始化
+```js
+const pi = 3.1415
+const e // 语法错误，缺少初始化
+//  Uncaught SyntaxError: Missing initializer in const declaration
+```
+3. const 声明的变量无法重复赋值。
+```js
+const people = ['Tesla', 'Musk']
+people = []
+console.log(people)
+// <- ['Tesla', 'Musk']
+// VM73:2 Uncaught TypeError: Assignment to constant variable.
+
+```
+4. ！！使用const 声明的变量并不是不可改变的 不可改变的是const 声明变量的引用
+```js
+const people = ['Tesla', 'Musk']
+people.push('Berners-Lee')
+console.log(people)  //  ["Tesla", "Musk", "Berners-Lee"]
+```
+5.  const 声明会禁止变量绑定到一个新的引用
+```js
+const people = ['Tesla', 'Musk']
+var humans = people
+humans = 'evil'
+console.log(humans) // evil
+people = 123
+// VM181:1 Uncaught TypeError: Assignment to constant variable.
+```
+6. 如果想要保持值不变 ，可以使用Object.freeze 这样的函数.
+```js
+const frozen = Object.freeze(
+    ['Ice', 'Icicle', 'Ice cube']
+)
+frozen.push('Water')
+// Uncaught TypeError: Can't add property 3
+// object is not extensible
+```
+
+### 4. let和const的优势
+1. let和const 不可以重复声明变量
+2. const 能够显式地定义不可重复赋值的变量
+> 使用方法: 一般使用const，并在需要重新赋值时使用let

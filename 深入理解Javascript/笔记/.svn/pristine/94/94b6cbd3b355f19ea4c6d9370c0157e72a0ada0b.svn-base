@@ -1,0 +1,351 @@
+# 使用代理控制属性访问
+1. 了解代理
+2. 可撤销代理
+3. 代理捕获器
+4. 高级代理捕获器
+
+## 1. 了解代理
+什么是代理？
+
+---
+代理(proxy)是ES6中的一个属性，在API和对象之间扮演了一个中间人的角色。
+
+---
+对代理对象进行的所有操作都会传递到底层对象。  可以把代理比作其底层对象的门卫: 可以让你进，也可以不让你进。
+```js
+    // 一个无操作转发Proxy 
+    const target = {};
+    const handler = {};
+    const proxy = new Proxy(target, handler);
+    proxy.exposed = true;
+
+```
+捕获get访问
+```js
+  const handler = {
+      get(target,key) {
+          console.log(`Get on property "${key}"`);
+          return target[key];
+      }
+  }
+  var target = {};
+  const proxy = new Proxy(target, handler);
+  proxy.numbers = [1,1,2,3,5,8,13];
+
+  proxy.numbers
+//   Get on property "numbers"
+// (7) [1, 1, 2, 3, 5, 8, 13]
+```
+内置的Reflect 对象 和 捕获器
+```js
+  const handler = {
+      get(target, key){
+          console.log(`Get on property "${key}"`);
+          return Reflect.get(target,key)
+      }
+  }
+  const target = {};
+  const proxy = new Proxy(target, handler);
+```
+设置属性不能通过代理访问
+```js
+  const handler = {
+      get(target, key){
+          if(key.startsWith('_')){
+              throw new Error (`Property "${ key }" is inaccessible`)
+          }
+          return Reflect.get(target,key)
+      }
+  }
+  const target = {};
+  const proxy = new Proxy(target, handler);
+  proxy._serect // 报错
+```
+---
+捕获set 访问 set 捕获器可以拦截属性赋值
+```js
+  const handler = {
+      get(target, key){
+          invariant(key,'get');
+          return Reflect.get(target, key)
+      },
+      set(target, key,value){
+          invariant(key, "set")
+          return Reflect.set(target, key , value)
+          
+      }
+  }
+  function invariant(key,action){
+      if(key.startWith('_')){
+          throw new  Error(`can't ${action} private "${ key }" property`)
+      }
+  }
+  const target = {};
+  const proxy = new Proxy(target, handler);
+
+  // 测试
+   proxy.text = 'the great black pony ate your lunch'
+    console.log(target.text)
+    // <- 'the great black pony ate your lunch'
+    proxy._secret
+    // <- Error: Can't get private "_secret" property
+    proxy._secret = 'invalidate'
+    // <- Error: Can't set private "_secret" property
+```
+对使用者而言，target对象应该是完全隐藏的
+```js
+function concealWithPrefix(original, prefix="_"){
+    const handler = {
+        get(original, key){
+            invariant(key,"get");
+            return Reflect.get(original, key)
+        },
+        set(original, key, value){
+            invariant(key, 'set')
+            return Reflect.set(original, key, value)
+        }
+    }
+    return new Proxy(original, handler)
+    function invariant(key, action) {
+        if(key.startWith(prefix)){
+            throw new Error(`can't ${action} private "${ key }" property`)
+        }
+    }
+}
+
+const target = {
+    _secret:"secret",
+    text:'everyone-can-read-this'
+}
+const proxy = concealWithPrefix(target);
+```
+通过代理实现模式验证
+```js
+  const validations = new Map();
+  const validator = {
+      set(target, key, value){
+          if(validations.has(key)){
+              return validations[key](value)
+          }
+          return Reflect.set(target, key, value)
+      }
+  }
+  validations.set("age", validateAge);
+  function validateAge(value){
+      if(typeof value !== 'number' || Number.isNaN(value)){
+          throw new TypeError("Age must be a number")
+      }
+      if(value <=0){
+          throw new TypeError('Age must be a positive number')
+      }
+      return true
+  }
+
+//    person 对象
+const person = {};
+const proxy = new Proxy(person, validator);
+proxy.age = 'twenty three'
+// <- TypeError: Age must be a number
+proxy.age = NaN
+// <- TypeError: Age must be a number
+proxy.age = 0
+// <- TypeError: Age must be a positive number
+proxy.age = 28
+console.log(person.age)
+// <- 28
+```
+---
+## 2.可撤销代理
+> 可撤销代理不需要用new关键字，并且会返回一个{proxy, revoke} 对象， 调用revoke后，任何操作都会导致proxy抛出错误。
+
+```js
+    const target = {};
+    const handler = {};
+    const {proxy, revoke} = Proxy.revocable(target, handler)
+    proxy.isUsable = true;
+    console.log(proxy.isUseable);
+    // <- true
+    revoke();
+    revoke();
+    revoke();
+    console.log(proxy.isUseable) // TypeError  Cannot perform 'get' on a proxy that has been revoked
+```
+创建代理的时候没有用new关键字， 而且反复调用revoke() 没有任何反应，但是之后在访问底层对象会导致错误
+
+----
+
+```js
+  const proxies = new WeakMap();
+  const storage = {};
+
+  function getStorage() {
+      const handler = {};
+      const {proxy, revoke} = Proxy.revovable(storage, handler);
+      proxies.set(proxy, {revoke})
+      return proxy
+  }
+  
+  function revokeStorage(proxy){
+      proxies.get(proxy).revoke();
+      proxies.delete(proxy);
+  }
+```
+getStorage 返回用于访问storage 的代理对象，同时
+用WeakMap 集合保存了代理及其revoke 函数。当我们想要切断对storage 的访问时，
+revokeSorage 将调用对应的revoke 函数并从WeakMap 移除该项
+
+---
+## 3. 代理捕获器
+1. has捕获器  ----对in操作符隐藏任意属性
+
+    用法
+    ```js
+      const handler = {
+          get(target, key){
+              invariant(key,'get')
+              return Reflect.get(target, key)
+          },
+          set(target,key, value){
+              invariant(key,"set")
+              return Reflect.set(target,key, value)
+          },
+          has(target,key){
+              if(key.startsWith("_")){
+                  return false
+              }
+              return Reflect.has(target, key)
+          }
+      }
+      }
+      function invariant(key, action) {
+            if (key.startsWith('_')) {
+                throw new Error(`Can't ${ action } private "${ key }"property`)
+            }
+      }
+
+      const target = {
+          _select:'securely-stored-value',
+          wellKnown:'public-known-value'
+      }
+      const proxy = new Proxy(target, handler);
+      console.log('wellKnown' in proxy)
+        // <- true
+        console.log('_secret' in proxy)
+        // <- false
+        console.log('_secret' in target)
+        // <- true
+    ```
+    要想阻止Object#hasOwnProperty 在私有空间找到属性，has 捕获器可帮不上忙。
+    console.log(proxy.hasOwnProperty('_secret')) // <- true
+---
+2. deleteProperty捕获器  --- 捕获对象用delete 操作符
+
+    正如上面的示例，我们对"_"开头的属性进行了 set 和 get 还有in 的拦截操作，但是 delete仍然可以删除它
+    ```js
+    const handler = {
+          get(target, key){
+              invariant(key,'get')
+              return Reflect.get(target, key)
+          },
+          set(target,key, value){
+              invariant(key,"set")
+              return Reflect.set(target,key, value)
+          },
+          has(target,key){
+              if(key.startsWith("_")){
+                  return false
+              }
+              return Reflect.has(target, key)
+          },
+          deleteProperty(target,key){
+                invariant(key,"delete")
+              return Reflect.deleteProperty(target, key)
+          }
+    }
+    ```
+    通过proxy 访问target 的使用者再也不能删除私有属性啦
+---
+3. defineProperty捕获器  --- 拦截要定义的属性
+    既可以拦截声明式定义 pizza.extraCheese = false, 也可以拦截API调用Object.defineProperty(pizza,"extraCheese",{value:false})
+    ```js
+    // 如何阻止通过proxy 给对象添加属性
+    const handler = {
+        defineProperty(target, key, descriptor) {
+            return false
+        }
+    }
+    const target = {}
+    const proxy = new Proxy(target, handler)
+    proxy.extraCheese = false
+    // <- TypeError: 'defineProperty' on proxy: trap returned false
+
+    // 使用defineProperty 捕获器来阻止通过代理创建私有属性。
+    const handler = {
+        defineProperty(target, key, descriptor){
+            invatiant(key,"define");
+            return Reflect.defineProperty(target, key, descriptor);
+        }
+    }
+    function incariant(key, action){
+        if (key.startsWith('_')) {
+            throw new Error(`Can't ${ action } private "${ key }" property`)
+        }
+    }
+    const target = {}
+    const proxy = new Proxy(target, handler)
+    proxy.topping = 'cheese'
+    proxy._secretIngredient = 'salsa'
+    // <- Error: Can't define private "_secretIngredient" property
+    ```
+    如果处理器返回false，属性的声明式定义在严格模式下会导致抛出异常，在非严格模式下则会静默失败
+---
+4. ownKeys捕获器  --- 可以返回一个属性数组
+
+    handler.ownKeys方法可以返回一个属性数组，而这个数组也是Reflect.ownKeys()的结果。 数组中包含target对象的所有属性：可枚举、不可枚举、以及符号属性。ownKeys 捕获器适用于以下所有操作
+    - Reflect.ownKeys() 返回对象上所有自己的键。
+    - Object.getOwnPropertyNames() 只返回非符号属性
+    - Object.getOwnPropertySymbols() 只返回符号属性
+    - Object.keys 只返回非符号可枚举属性
+    - for in 只返回非符号可枚举属性
+    ```js
+    const  handler = {
+        ownKeys(target){
+            return Reflect.ownKeys(target).filter(key=>{
+                const isStringKey = typeof key === 'string'
+                if(isStringKey){
+                    return !key.startsWith("_")
+                }
+                return true
+            })
+        }
+    }
+    const target = {
+    [Symbol('id')]: 'ba3dfcc0',
+    _secret: 'sauce',
+    _toppingCount: 3,
+    toppings: ['cheese', 'tomato', 'bacon']
+    }
+    const proxy = new Proxy(target, handler)
+    for (const key of Object.keys(proxy)) {
+    console.log(key)
+    // <- 'toppings'
+    }
+    ```
+    在符号及其他属性不受影响的情况下，我们成功地对枚举操作隐藏了带前缀“_”的属性。
+更重要的是，一个ownKeys 捕获器就涵盖了所有的枚举操作，因此我们无须动用多个捕获
+器。唯一要注意的是，处理Symbol 属性时必须小心一点。
+---
+## 4. 高级代理捕获器
+1. getOwnPropertyDescriptor捕获器
+---
+2. apply 捕获器
+---
+3. construct捕获器
+---
+4. getPrototypeOf捕获器
+---
+5. setPrototypeOf捕获器
+---
+6. preventExtensions捕获器
+---
+7. isExtensible捕获器

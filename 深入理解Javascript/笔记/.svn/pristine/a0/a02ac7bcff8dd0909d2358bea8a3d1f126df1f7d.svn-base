@@ -1,0 +1,150 @@
+# 迭代器与控制流程(下) 
+1. 生成器函数与生成器对象
+2. 异步函数
+4. 异步迭代
+
+
+## 1. 生成器函数与生成器对象
+ 1. 生成器基础
+
+    创建一个基础的生成器
+    ```js
+        function* abc(){
+            yield 'a'
+            yield 'b'
+            yield 'c'
+        }
+        const chars = abc();
+        typeof chars[Symbol.iterator] === 'function'
+        typeof chars.next === 'function'
+        chars[Symbol.iterator]() === chars
+
+    ```
+     生成器对象同时遵循可迭代协议和迭代器协议.
+     - 生成器对象chars是通过函数abc创建的。
+     - 对象chars是一个可迭代对象，因为它有一个Symbol.iterator方法.
+     - 对象chars也是一个迭代器，因为他有一个.next 方法。
+     - chars的迭代器就是它自己。
+     ---
+     创建生成器对象的时候，会得到一个用生成器函数产生可迭代序列的迭代器。每当代码执行到yield表达式，迭代器就会返回该表达式的值，而且生成器函数会暂停执行。
+     ```js
+     // 迭代会触发生成器函数中的副作用，当生成器函数恢复执行已返回序列中下一个元素的时候，每个yield语句后面的console.log()语句都会执行。
+     function* numbers() {
+         yield 1
+         console.log("a")
+         yield 2
+         console.log("b")
+         yield 3
+         console.log("c")
+     }
+     //  ... 的副作用 扩展操作符会迭代整个序列，以帮助你创建一个数组，在以下的console.log 语句打印出数组之前，所有的副作用都会在通过解构构建数组的过程中被执行。
+     [...numbers()]  // a b c  [1,2,3] , Array.from 一样的。
+    
+     //  for of 的 副作用
+    for (const number of numbers()) {
+        console.log(number)
+        // <- 1
+        // <- 'a'
+        // <- 2
+        // <- 'b'
+        // <- 3
+        // <- 'c'
+    }
+     ```
+ ---
+ 2. 手工迭代生成器
+
+    除了使用 Array.from(), for of , ... 迭代生成器之外，还可以使用.next() 方法一步步迭代。
+    ```js
+    const g = numbers()
+        while (true) {
+        const item = g.next()
+        if (item.done) {
+            break
+        }
+        console.log(item.value)
+    }
+    ```
+    每次调用.next() 方法都有四种 "事件" 导致生成器内部暂停执行，并给.next()的调用者返回一个结果，简单总结如下:
+    - yield 表达式返回序列中的下一个值
+    -  return 语句返回序列中最后一个值
+    - throw 语句完全中断生成器的执行
+    - 到达生成器函数的最后，获取值{done: true}, 因为函数隐式地返回undefined。
+ ---
+ 3. 将生成器混入可迭代对象
+    ```js
+    function * fibonacci(){
+        let previous = 0;
+        let current = 1;
+        while (true) {
+            yield current
+            const next = current + previous
+            previous = current
+            current = next
+        }
+    }
+    const g = fibonacci();
+    console.log(g.next()) // <- { value: 1, done: false }
+    console.log(g.next()) // <- { value: 1, done: false }
+    console.log(g.next()) // <- { value: 2, done: false }
+    console.log(g.next()) // <- { value: 3, done: false }
+    console.log(g.next()) // <- { value: 5, done: false }
+    console.log(g.next()) // <- { value: 8, done: false }
+    console.log(g.next()) // <- { value: 13, done: false }
+    console.log(g.next()) // <- { value: 21, done: false }
+    ```
+    ---
+    使用可迭代对象来实现与此类似,不过它要遵循协议，返回对象必须有一个next方法。
+    ```js
+    //  可迭代对象 fibonacci 和上面的生成器功能大致相同
+    const fibonacci = {
+        [Symbol.iterator](){
+            let previous = 0;
+            let current = 1;
+            return {
+                next(){
+                    const value = current;
+                    const next = current + previous;
+                    previous = current;
+                    current = next
+                    return {value, done:false}
+                }
+            }
+        }
+    }
+    const sequence = fibonacci[Symbol.iterator]()
+    console.log(sequence.next()) // <- { value: 1, done: false }
+    console.log(sequence.next()) // <- { value: 1, done: false }
+    console.log(sequence.next()) // <- { value: 2, done: false }
+    ```
+    ---
+    修改可迭代对象fibonacci , 让它的Symbol.iterator 属性指向一个上
+ ---
+ 4. 使用生成器遍历树
+ ---
+ 5. 传递生成器函数
+ ---
+ 6. 处理异步流
+ ---
+ 7. 在生成器上抛出错误
+ ---
+ 8. 代替生成器返回
+ ---
+ 9. 基于生成器的异步I/O
+ ---
+## 2. 异步函数
+1. 各种异步代码
+---
+2. 使用async/await
+---
+3. 并发异步流
+---
+4. 错误处理
+---
+5. 深入理解异步函数
+---
+## 3. 异步迭代
+1. 异步迭代器
+---
+2. 异步生成器
+---

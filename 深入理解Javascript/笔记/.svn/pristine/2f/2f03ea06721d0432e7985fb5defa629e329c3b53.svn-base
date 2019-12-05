@@ -1,0 +1,182 @@
+# 迭代器协议和可迭代协议基础知识补充
+
+## 1. 可迭代协议
+> 可迭代协议允许Javascript对象去定义或制定它们的迭代行为。
+
+普通的对象想要转换成为{{可迭代的对象}}, 就要实现 @@iterator方法，就是这个对象或者这个对象的原型链上的某个对象) 必须有一个 Symbol.iterator 的属性。
+```js
+    let iteratorObj = {
+        [Symbol.iterator]: fn()  
+    }
+```
+使用迭代协议的例子
+```js
+  var someString = "hiff";
+  typeof someString[Symbol.iterator];
+//   String 的默认迭代器会一个接一个返回该字符串的字符：
+var iterator = someString[Symbol.iterator]();
+iterator.next();   // {value: "h", done: false}
+//  扩展操作符 也使用了同样的迭代
+[...someString];
+```
+自定义迭代fangfa
+```js
+var someString = new String("hi");
+
+someString[Symbol.iterator] = function(){
+    return {
+        next: function(){
+            if(this._first){
+                this._first = false;
+                return {value:"bye",done:false}
+            }else{
+                return {done:true}
+            }
+        },
+        _first: true
+    }
+}
+//  [...someString];  ["bye"]
+```
+## 2.迭代器协议
+> 迭代器协议定义了一种标准的方式来产生一个有限或者无限序列的值， 当所有的值被迭代后，就会有一个默认的返回值。
+
+对象和迭代器？ 对象如何成为迭代器
+```js
+//   1. 实现了一个 特定 next() 方法 返回一个对象
+{
+    done(boolean),
+    value- 迭代器返回的任何 JavaScript 值
+}
+```
+创建一个同时满足迭代器协议和可迭代协议的对象--example
+```js
+var myIterator = {
+    next: function (){
+        //  ...
+    },
+    [Symbol.iterator]: function () {return this}
+}
+```
+## 3.可迭代的对象展示
+1. 内置可迭代对象
+---
+String, Array, TypedArray, Map and Set 是所有内置可迭代对象， 因为它们的原型对象都有一个 @@iterator 方法.
+
+---
+2.自定义可迭代对象
+```js
+  var myIterable = {};
+  myIterable[Symbol.iterator] = function* (){
+      yield 1;
+      yield 2;
+      yield 3;
+      yield 4;
+  }
+//   [....myIterable]  [1, 2, 3, 4]
+```
+3.接受可迭代对象的内置API
+```js
+//  很多API可以接受迭代对象作为参数
+//  Map([iterable])  、WeakMap([iterable]) Set([iterable]) and WeakSet([iterable]):
+var myObj = {};
+new Map([[1,"a"],[2,"b"],[3,"c"]]).get(2)  // b
+new WeakMap([[{},"a"],[myObj,"b"],[{},"c"]]).get(myObj);
+new Set([1, 2, 3]).has(3);                               // true
+new Set("123").has("2");                                 // true
+new WeakSet(function*() {
+    yield {};
+    yield myObj;
+    yield {};
+}()).has(myObj); 
+```
+另外还有 Promise.all(iterable), Promise.race(iterable) 以及 Array.from().
+
+---
+4. 用于可迭代对象的语法
+```js
+//   1. for-of
+for(let value of ["a", "b", "c"]){
+    console.log(value);
+}
+//   2. ...
+[..."abc"]; // ["a", "b", "c"]
+//   3. yield*
+function* gen(){
+  yield* ["a", "b", "c"];
+}
+
+gen().next(); // { value:"a", done:false }
+//   4. 解构任务
+[a, b, c] = new Set(["a", "b", "c"]);
+```
+---
+
+## 4.迭代器示例
+1. 简单的迭代器
+```js
+function makeIterator(array){
+    var nextIndex = 0;
+    return {
+        next: function(){
+            return nextIndex < array.length ?
+            {value:array[nextIndex++], done:false} :
+            {done: false}
+        }
+    }
+}
+
+var it = makerIterator(["yo","ya"]);
+
+```
+2. 无穷迭代器
+```js
+function idMaker(){
+    var index = 0;
+    
+    return {
+       next: function(){
+           return {value: index++, done: false};
+       }
+    };
+}
+
+var it = idMaker();
+
+console.log(it.next().value); // '0'
+console.log(it.next().value); // '1'
+console.log(it.next().value); // '2'
+```
+3.生成器式的迭代器
+```js
+function* makeSimpleGenerator(array){
+    var nextIndex = 0;
+    
+    while(nextIndex < array.length){
+        yield array[nextIndex++];
+    }
+}
+
+var gen = makeSimpleGenerator(['yo', 'ya']);
+
+console.log(gen.next().value); // 'yo'
+console.log(gen.next().value); // 'ya'
+console.log(gen.next().done);  // true
+
+
+
+function* idMaker(){
+    var index = 0;
+    while(true)
+        yield index++;
+}
+
+var gen = idMaker();
+
+console.log(gen.next().value); // '0'
+console.log(gen.next().value); // '1'
+console.log(gen.next().value); // '2'
+```
+生成器对象 既是迭代器也是可迭代对象:
+
+----

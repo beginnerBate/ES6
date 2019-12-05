@@ -1,0 +1,68 @@
+# 了解ECMAscript 和 Javascript的未来
+
+## 学习内容
+1. js的发展史 
+2. ecmascript的更新和发布流程
+3. 使用babel 转es5
+4. 使用 ESLint 提高代码质量和一致性
+5. ES6的特性
+6. javascript的未来
+
+## JS的发展史
+1.  1995年 Brendan 花了10天的时间，实现了Javascript的第一个原型，主要实现了scheme的一类函数和Self的原型等构造。
+2. 1995年9月 Javascript的修订版内置在 Netscape Navigator2.0 beta中 ，对外宣称: LiveScript
+3. 1995年12月 重新命名 Javascript
+4. 1996年 ECMA的TC39 将JavaScript 以名称ECMAScript（ES）标准化
+为ECMA-262 规范
+5. 1997年6月  ECMA-262 发布了第一版
+6. 1998年6月  ECMA-262 发布了第二版
+7. 1999年12月 发布第三版 标准化了正则表达式、switch 语句、do/whille、try/catch、Object#hasOwnProperty，以及其他一些特性
+8. 2003年 TC39解散 ES4 夭折
+9. 2011年6月 为ECMAScript 5.1 发布
+10. 2015 年6 月，TC39 又花4 年完成了ECMAScript 6。
+> 第六版是JavaScript 历史上一个意义重大的里程碑。除了众多新功能之外，ES6 也是
+ECMAScript 成为持续迭代标准的一个转折点。
+
+## ecmascript的更新和发布流程
+- 方式:
+> 使用Ecmarkup 和 Github 来提交需求
+
+- 四个阶段:[稻草人的发展史]
+    - 阶段0: TC39 委员会的成员创建“稻草人” 
+    - 阶段1: 提案被正式提出: 高级API描述, 演示性的用法示例、内部语义和算法的讨论
+    - 阶段2: 阶段2的提案是规范的初步草案。从这一步开始，需要在运行环境中验证具体的实现。 实现方式可以是polyfill, 能让运行环境支持提案的用户代码、原生支持提案内容的引擎实现。
+    - 阶段3: 候选推提案: 只有规范的编辑和指定的审查人员在最终的规范上签字确
+认，提案才能进入阶段3.条件:
+      > 某个浏览器已经实现该提案，有高度吻合的
+        腻子脚本，有类似Babel 的实时编译工具的支持
+    - 阶段4: 提案必须有两个独立的实现方案通过验收测试。 会添加到ES的下一个版本中
+
+- 发布时间: 每年都会发布 命名和年份相关
+
+# 使用babel 转es5
+ - 简介:
+  > Babel 可以将ES6代码编译成ES5代码。 生成ES5代码很容易看懂，所有特别适合用来了解新特性。
+- 使用方式: 3种:
+
+    1. [在线体验](https://www.babeljs.cn/repl),REPL转换器[无需安装Node.js babel CLI]
+    2. 在代码中 引入 babel-polyfill 包
+    3. npm 
+    ```md
+    npm install babel-cli@6 --save-dev
+    npm install babel-preset-env@6 --save-dev
+    ```
+# ES6的特性
+- 语法糖
+    - 新类来表达对象继承、箭头函数、属性值简写
+    - 解构、剩余参数、扩展运算符等
+- 新机制
+    - promise
+    - 迭代器
+    - 生成器
+    - ES2017 async/await
+- 更好的语义
+- 更多的内置对象和方法
+    - 集合和映射
+    - Number、Math、Array、String对象的扩展。
+- 对原有限制的非破坏性解决方案
+    - 代理对象

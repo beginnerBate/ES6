@@ -1,0 +1,75 @@
+# 使用代理控制属性访问
+1. 了解代理
+2. 可撤销代理
+3. 代理捕获器
+4. 高级代理捕获器
+
+## 1. 了解代理
+什么是代理？
+
+---
+代理(proxy)是ES6中的一个属性，在API和对象之间扮演了一个中间人的角色。
+
+---
+对代理对象进行的所有操作都会传递到底层对象。  可以把代理比作其底层对象的门卫: 可以让你进，也可以不让你进。
+```js
+    // 一个无操作转发Proxy 
+    const target = {};
+    const handler = {};
+    const proxy = new Proxy(target, handler);
+    proxy.exposed = true;
+
+```
+捕获get访问
+```js
+  const handler = {
+      get(target,key) {
+          console.log(`Get on property "${key}"`);
+          return target[key];
+      }
+  }
+  var target = {};
+  const proxy = new Proxy(target, handler);
+  proxy.numbers = [1,1,2,3,5,8,13];
+
+  proxy.numbers
+//   Get on property "numbers"
+// (7) [1, 1, 2, 3, 5, 8, 13]
+```
+内置的Reflect 对象 和 捕获器
+```js
+  const handler = {
+      get(target, key){
+          console.log(`Get on property "${key}"`);
+          return Reflect.get(target,key)
+      }
+  }
+  const target = {};
+  const proxy = new Proxy(target, handler);
+```
+设置属性不能通过代理访问
+```js
+  const handler = {
+      get(target, key){
+          if(key.startsWith('_')){
+              throw new Error (`Property "${ key }" is inaccessible`)
+          }
+          return Reflect.get(target,key)
+      }
+  }
+  const target = {};
+  const proxy = new Proxy(target, handler);
+  proxy._serect // 报错
+```
+---
+捕获set 访问
+```js
+  const handler = {
+      get(){
+
+      },
+      set(){
+          
+      }
+  }
+```

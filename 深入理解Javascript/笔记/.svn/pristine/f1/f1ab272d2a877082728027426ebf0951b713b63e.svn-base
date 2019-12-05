@@ -1,0 +1,234 @@
+# 类、符号、对象和装饰器
+1. 类
+2. 符号
+3. 对象
+4. 装饰器
+
+## 1.类
+### 1. es6中的类和es6之前的类的写法对比
+> es6中的类(类声明不会提升到所在作用域的顶部)
+```javascript
+//  es6 之前的类实现
+function Fruit(name, calories) {
+    this.name = name;
+    this.calories = calories;
+    this.price = 1;
+}
+
+Fruit.prototype.chop = function(){
+    this.price++
+}
+
+Fruit.prototype.bite = function (person){
+    if(this.pieces <1 ){
+        return 
+    }
+    const calories = this.calories / this.pieces ;
+    person.satiety += calories;
+    this.calories -= calories;
+    this.pieces--;
+}
+// es6的类语法  ，类声明不会提升到所在作用域的顶部
+class Fruit{
+    constructor(name, calories){
+        this.name = name;
+        this.calories = calories;
+        this.price = 1;
+    }
+    chop(){
+        this.price++
+    }
+    bite(person){
+        if(this.pieces < 1){
+            return 
+        }
+        const calories = this.calories / this.pieces ;
+        person.satiety += calories;
+        this.calories -= calories;
+        this.pieces--;  
+    }
+}
+```
+### 2. 类的属性和方法
+  2.1 getter 和setter 方法
+```javascript
+    class Counter{
+        constructor(start){
+            this.count = start;
+        }
+        // get next 方法表明Counter 类的实例会有一个next 属性
+        get next(){
+            return this.count++
+        }
+    }
+    const counter = new Counter(2);
+    console.log(counter.next);  // 2
+    console.log(counter.next);  // 3
+    console.log(counter.next);  // 4
+```
+2.2 getter 和 setter 配合使用案例
+```javascript
+
+class LocalStorage {
+    constructor (key){
+        this.key = key;
+    }
+    get data() {
+        return JSON.parse(localStorage.getItem(this.key))
+    }
+    set data(data) {
+        localStorage.setItem(this.key, JSON.stringify(data))
+    }
+}
+
+const ls = new LocalStorage("groceries");
+ls.data = ["apple","bannan","xiaoxingxing"]
+console.log(ls.data) //  ["apple","bannan","xiaoxingxing"]
+```
+2.3 类自身中添加静态方法
+```Javascript
+class MathHelper {
+    static sum (...numbers) {
+        return numbers.reduce((a,b) => a+b)
+    }
+}
+console.log(MathHelper.sum(1,2,3,4,5,6,7,8,9))  // 45
+```
+3. 类的继承
+  1. 基本继承
+```javascript
+    //  ES6 的实现
+    class Banana extends Fruit {
+        constructor(){
+            super("banana", 105)
+        }
+        slice(){
+            this.pieces = 12;
+        }
+    }
+```
+2. 利用javascript的函数式编程特性 和 继承
+```javascript
+const createJuicyFruit = (...param) => 
+    class JuicyFruit extends Fruit {
+        constructor(){
+            super(...param);
+            this.juice = 0;
+        }
+        squeeze() {
+            if (this.calories <=0) {
+                return 
+            }
+            this.calories -= 10;
+            this.juice += 3
+        } 
+    }
+
+    class Plum extends createJuicyFruit ("plum", 30){
+        constructor(){
+            super()
+        }
+    }
+```
+## 2. 符号  ---- 需要好好理解symbol的基础才能看懂
+1. 什么是符号？
+  - 符号是符号是ES6中新增的基本类型,是Javascript中的第7种数据类型
+2. 符号的表达形式
+  - 没有字面量，符号有3种类型，每种类型是用不同方式访问的
+3. 符号的特点和使用场景
+- 符号是独一无二的
+- 作为对象的属性名
+### 2.1 本地符号
+- 创建: 通过内置符号包装对象创建
+```js
+  var first  = Symbol()
+  // 不可以使用 new 关键字创建符号 会报错
+  typeof first   // "symbol"
+```
+- 访问: 通过存储引用或反射来访问
+```js
+  const weapon = Symbol("weapon");
+  const character = {
+      name:"普通的属性名称",
+      [weapon]:"使用符号作为属性名称"
+  }
+  console.log(Object.getOwnPropertySymbols(character)) // 
+```
+
+2. 符号的实际用法
+```js
+// 将对象映射到DOM元素
+const cache = Symbol("calendar");
+function createCalendar(el) {
+    if(cache in el) {
+        return el[cache]
+    }
+    const api = el[cache] = {
+        // 在这里编写日历API
+    }
+    return api;
+}
+//  用协议定义符号值
+const character = {
+    name:"Thor",
+    toJSON: ()=>({
+        key:"value"
+    })
+}
+```
+3. 全局符号注册表
+4. 众所周知的符号
+
+## 3. 对象的内置改进
+1. 使用Object.assign 扩展对象
+    ```js
+    const defaults = {
+        scripts:false,
+        iframe:false,
+        highlightSyntax: true
+    }
+
+    function md(input, options){
+        const config = Object.assign({}, defaults, options)
+    }
+    ```
+    ---
+
+    Object.assign 函数会改变第一个参数的值， 参数形式是 (target, source1,...);
+    所以建议每次使用 Object.assign 的时候要传入一个全新的对象作为第一个参数。
+
+    ---
+2. 使用 Object.is 进行对象比较
+    ```js
+    //  Object.is() 和 === 基本相同 但是以下两种情况不同
+
+    //   1. -0 和 +0
+    -0 === +0  // true   
+    Object.is(-0,+0) // false
+
+    // 2. NAN 和 NAN 的时候
+    Object.is(NaN, NaN) // true
+    NAN === NAN // false
+
+    ```
+3. Object.setPrototypeOf 的使用和理解
+```js
+// 设置一个对象的原型引用为另一个对象
+// 来改变已有对象的原型，如下所示。
+const baseCat = { type: 'cat', legs: 4 }
+const cat = Object.setPrototypeOf(
+                        { name: 'Milanesita' },
+                        baseCat
+                    )
+```
+---
+
+Object.setPrototypeOf()  会影响性能  可以用 Object.create 代替。
+
+---
+
+## 4.装饰器 ---第一次接触的时候是在哪里忘记了 就知道ts里面的装饰器。
+1. 初始Javascript装饰器。
+2. 装饰器叠加及不变性提醒
+3. 使用案例
+4. 在Javascript中的装饰器。
